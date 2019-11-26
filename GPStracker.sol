@@ -1,227 +1,72 @@
 pragma solidity >=0.4.17 <0.6.0;
-
-//import "https://github.com/Sikorkaio/sikorka/contracts/trigonometry.sol";
+import "./Point.sol";
 
 
 contract GPSTRacker {
     
     // ALl latitudes must be multiplied by 10.000 before calling in this contract
     //last position inserted
-    int256 private lastLatitude;
-    int256 private lastLongitude;
+    Point lastLocation;
     
-    //positions lists
-    int256[] private latitudes;
-    int256[] private longitutdes;
+    //current position
+    Point currentLocation;
     
     //travelled distance
     uint256 private travelledDistance;
+    //Array of travelled Points
+    Point[] private locations;
     
-    
-    //event Track(int256 _lat1 ,int256 _lat2,int256 _lon1, int256 _lon2, int256 x ,int256 y);
     
     
     // add input multipled by 10.000
     constructor(int256 _latitude, int256 _longitude) public{
-        lastLatitude = _latitude;
-        lastLongitude = _longitude;
+        currentLocation = new Point(_latitude, _longitude);
+        lastLocation = new Point(_latitude, _longitude);
+        locations = new Point[](1);
         
-        latitudes = new int256[](1);
-        longitutdes = new int256[](1);
-        
-        latitudes[0] = _latitude;
-        longitutdes[0] = _longitude;
+        locations[0] = currentLocation;
         
         travelledDistance = 0;
     }
     
 
-    
-    function addPosition(int256 _latitude, int256 _longitude) public
+    //Adds a new position to the array, recalculating the travelled distance
+    function addPosition(Point _newLocation) public
     {
-        travelledDistance += calculateDistance(lastLatitude, lastLongitude, _latitude, _longitude);
-        lastLatitude = _latitude;
-        lastLongitude = _longitude;
-        addToList(_latitude, _longitude);
+        travelledDistance += lastLocation.calculateDistance(_newLocation);
+        lastLocation = _newLocation;
+        addToList(_newLocation);
     }
+    //Gets how many positions are there in the array of travelled locations
     function getTotalPositions() public view returns(uint256)
     {
-        return latitudes.length;
-        //return 1;
+        return locations.length;
     }
+    
+    //Gets the true distance travelled
     function getDistanceFromStart() public view returns(uint256)
     {
-        return calculateDistance(latitudes[0] , longitutdes[0], lastLatitude, lastLongitude);
+        return locations[0].calculateDistance(lastLocation);
     }
+    
+    //Gets the travelled distance
     function getTravelledDistance() public view returns(uint256)
     {
         return travelledDistance;
     }
-    function getPosition(uint _pos) public view returns(int256 _latitude, int256 _longitude)
+    //Gets and specific position in the array
+    function getPosition(uint _pos) public view returns(Point location)
     {
-        _latitude = latitudes[_pos];
-        _longitude = longitutdes[_pos];
+        location = locations[_pos];
     }
     
     //Private functions
-    //Equirectangular approximation
-    function calculateDistance(int256 _latitudeStart, int256 _longitudeStart, int256 _latitudeEnd, int256 _longitudeEnd) pure private returns (uint) 
+    //Inserts the point in the array
+    function addToList(Point _location) private
     {
-        //converts to radiands
-        int256 _lat1 = toRadiands(_latitudeStart);
-        int256 _lat2 = toRadiands(_latitudeEnd);
-        int256 _log1 = toRadiands(_longitudeStart);
-        int256 _log2 = toRadiands(_longitudeEnd);
-        
-        int256 x = (_log2 - _log1 ) * cosineAdjusted( (_latitudeEnd + _latitudeStart )  / 2 ) / 10000; // Multiplication adjustment
-        
-        //latitude delta 
-        int256 y = _lat2 - _lat1;
-        
-        //emit Track(_lat1,_lat2,_log1, _log2,x,y);
-        
-        //return sqrt(uint256((x * x / 10000) + (y * y / 10000))) * 63710000 /10000; // Multiplication adjustment;
-        return sqrt(uint256((x * x) + (y * y))) * 63710000 /10000; // Multiplication adjustment;
-    }
-        function addToList(int256 _latitude, int256 _longitude) private
-    {
-        latitudes.push(_latitude);
-        longitutdes.push(_longitude);
-    }
-    //Babylon method
-    function sqrt(uint x) private pure returns (uint y) 
-    {
-        uint z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-        y = z;
-        z = (x / z + z) / 2;
-        }
-    }
-    
-    //rule of three
-    function rtres(int256 _max1, int256 _min1, int256 _value, int256 _max2, int256 _min2) private pure returns (int256)
-    {
-        assert(_max1 > _min1);
-        assert(_max2 > _min2);
-        
-        int256 max1 = _max1 - _min1;
-        int256 max2 = _max2 - _min2;
-        int256 value = _value - _min1;
-        
-        int256 retorno = (value * max2 ) / max1;
-        
-        return retorno + _min2;
-    }
-    
-    //convert radiands
-    function toRadiands(int256 degree) private pure returns (int256)
-    {
-        int256 PI = 31415;
-        int256 radiands = degree * (PI / 180 ) / 10000;
-        return radiands;
-    }
-    
-    //convert radiands
-    function cosineAdjusted(int256 degree) private pure returns (int256)
-    {
-        int cosine = cos(uint16(rtres(900000, 0, degree, 4096, 0)));
-        //int256 cosineAdjusted  = 
-        return rtres(32767, -32767, cosine, 10000, -10000);
-    }
-    
-    // Table index into the trigonometric table
-    uint constant INDEX_WIDTH = 4;
-    // Interpolation between successive entries in the tables
-    uint constant INTERP_WIDTH = 8;
-    uint constant INDEX_OFFSET = 12 - INDEX_WIDTH;
-    uint constant INTERP_OFFSET = INDEX_OFFSET - INTERP_WIDTH;
-    uint16 constant ANGLES_IN_CYCLE = 16384;
-    uint16 constant QUADRANT_HIGH_MASK = 8192;
-    uint16 constant QUADRANT_LOW_MASK = 4096;
-    uint constant SINE_TABLE_SIZE = 16;
-
-    // constant sine lookup table generated by gen_tables.py
-    // We have no other choice but this since constant arrays don't yet exist
-    uint8 constant entry_bytes = 2;
-    bytes constant sin_table = "\x00\x00\x0c\x8c\x18\xf9\x25\x28\x30\xfb\x3c\x56\x47\x1c\x51\x33\x5a\x82\x62\xf1\x6a\x6d\x70\xe2\x76\x41\x7a\x7c\x7d\x89\x7f\x61\x7f\xff";
-
-    /**
-     * Convenience function to apply a mask on an integer to extract a certain
-     * number of bits. Using exponents since solidity still does not support
-     * shifting.
-     *
-     * @param _value The integer whose bits we want to get
-     * @param _width The width of the bits (in bits) we want to extract
-     * @param _offset The offset of the bits (in bits) we want to extract
-     * @return An integer containing _width bits of _value starting at the
-     *         _offset bit
-     */
-    function bits(uint _value, uint _width, uint _offset) pure internal returns (uint) {
-        return (_value / (2 ** _offset)) & (((2 ** _width)) - 1);
-    }
-
-    function sin_table_lookup(uint index) pure internal returns (uint16) {
-        bytes memory table = sin_table;
-        uint offset = (index + 1) * entry_bytes;
-        uint16 trigint_value;
-        assembly {
-            trigint_value := mload(add(table, offset))
-        }
-
-        return trigint_value;
-    }
-
-    /**
-     * Return the sine of an integer approximated angle as a signed 16-bit
-     * integer.
-     *
-     * @param _angle A 14-bit angle. This divides the circle into 16384
-     *               angle units, instead of the standard 360 degrees.
-     * @return The sine result as a number in the range -32767 to 32767.
-     */
-    function sin(uint16 _angle) public pure returns (int) {
-        uint interp = bits(_angle, INTERP_WIDTH, INTERP_OFFSET);
-        uint index = bits(_angle, INDEX_WIDTH, INDEX_OFFSET);
-
-        bool is_odd_quadrant = (_angle & QUADRANT_LOW_MASK) == 0;
-        bool is_negative_quadrant = (_angle & QUADRANT_HIGH_MASK) != 0;
-
-        if (!is_odd_quadrant) {
-            index = SINE_TABLE_SIZE - 1 - index;
-        }
-
-        uint x1 = sin_table_lookup(index);
-        uint x2 = sin_table_lookup(index + 1);
-        uint approximation = ((x2 - x1) * interp) / (2 ** INTERP_WIDTH);
-
-        int sine;
-        if (is_odd_quadrant) {
-            sine = int(x1) + int(approximation);
-        } else {
-            sine = int(x2) - int(approximation);
-        }
-
-        if (is_negative_quadrant) {
-            sine *= -1;
-        }
-
-        return sine;
-    }
-
-    /**
-     * Return the cos of an integer approximated angle.
-     * It functions just like the sin() method but uses the trigonometric
-     * identity sin(x + pi/2) = cos(x) to quickly calculate the cos.
-     */
-    function cos(uint16 _angle) public pure returns (int) {
-        if (_angle > ANGLES_IN_CYCLE - QUADRANT_LOW_MASK) {
-            _angle = QUADRANT_LOW_MASK - ANGLES_IN_CYCLE - _angle;
-        } else {
-            _angle += QUADRANT_LOW_MASK;
-        }
-        return sin(_angle);
+        locations.push(_location);
     }
     
 }
  
+
