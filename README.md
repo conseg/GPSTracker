@@ -1,13 +1,17 @@
 # GPSTracker
 This is an API with some functions that might help the user to keep a GPS Track in Ethereum Blockchain.
+
 Made by [Henry Nunes](https://github.com/HenryNunes) and [Lucas Gavirachi Cardoso](https://github.com/LucasGCardoso) members of [CONSEG](https://github.com/conseg) group at PUCRS.
 
 ## Installation Process
 You may use our API by importing both main files (GPStracker.sol and Point.sol) in your application, as follows:
 
 `import "https://github.com/HenryNunes/GPSTracker/blob/master/GPStracker.sol";`
+
 and
+
 `import "https://github.com/HenryNunes/GPSTracker/blob/master/Point.sol";`
+
 
 However, if you are not a big fan of imports and want to keep things as simple as possible, you can always copy and paste the hole code from this repo (or download it) and use it freely in your application.
 
