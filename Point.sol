@@ -8,7 +8,7 @@ contract Point {
     int256 private latitude;
     int256 private longitude;
     
-    constructor(int256 _latitude, int256 _longitude) public{
+    function Point(int256 _latitude, int256 _longitude) public{
         latitude = _latitude;
         longitude = _longitude;
     }

@@ -19,7 +19,7 @@ contract GPSTRacker {
     
     
     // add input multipled by 10.000
-    constructor(int256 _latitude, int256 _longitude) public{
+    function GPSTRacker(int256 _latitude, int256 _longitude) public{
         currentLocation = new Point(_latitude, _longitude);
         lastLocation = new Point(_latitude, _longitude);
         locations = new Point[](1);
