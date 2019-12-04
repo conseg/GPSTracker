@@ -13,7 +13,7 @@ and
 `import "https://github.com/HenryNunes/GPSTracker/blob/master/Point.sol";`
 
 
-However, if you are not a big fan of imports and want to keep things as simple as possible, you can always copy and paste the hole code from this repo (or download it) and use it freely in your application.
+However, if you are not a big fan of imports and want to keep things as simple as possible, you can always copy and paste the whole code from this repo (or download it) and use it freely in your application.
 
 ## How it works
 Our API consists in two files, named GPSTracker and Point. The Point contract has all functions (public and private) to calculate distance between geographic points, and has latitude and longitude as attribute.
